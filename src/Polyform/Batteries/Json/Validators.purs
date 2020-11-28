@@ -38,11 +38,13 @@ module Polyform.Batteries.Json.Validators
   , jnull
   , field
   , fromNull
+  , mapOf
   , null
   , nullable
   , nullableOptionalField
   , number
   , object
+  , objectOf
   , optionalField
   , printPath
   , string
@@ -61,6 +63,8 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromNumber) as Int
 import Data.List (List(..), (:))
+import Data.Map (Map)
+import Data.Map (fromFoldableWithIndex) as Map
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
 import Data.Profunctor.Choice ((|||))
@@ -75,7 +79,7 @@ import Foreign.Object (Object)
 import Foreign.Object (lookup) as Object
 import Polyform.Batteries (Errors, Validator) as Batteries
 import Polyform.Validator (Validator, liftFn, liftFnEither, liftFnMaybe, lmapValidator) as Validator
-import Polyform.Validator (liftFnMV, liftFnMaybe, runValidator)
+import Polyform.Validator (liftFn, liftFnMV, liftFnMaybe, runValidator)
 import Prim.Row (class Cons) as Row
 import Type.Prelude (class IsSymbol)
 import Type.Row (type (+))
@@ -166,6 +170,30 @@ type ObjectExpected e
 
 object ∷ ∀ e m. Monad m ⇒ Validator m (ObjectExpected + e) (Object Json)
 object = Validator.liftFnMaybe (error _objectExpected) Argonaut.toObject
+
+objectOf ∷
+  ∀ m e a.
+  Monad m ⇒
+  Validator m (ObjectExpected + e) a →
+  Validator m (ObjectExpected + e) (Object a)
+objectOf v = liftFnMV ov <<< object
+  where
+  ep key = consErrorsPath (Key key)
+
+  -- | Run every validator by prefixing its error path with index.
+  -- | Validator results in `m (V e a)` so we need traverse here.
+  f ∷ Object Json → m (Object (V (Errors (ObjectExpected + e)) a))
+  f = traverseWithIndex \idx → runValidator (Validator.lmapValidator (ep idx) v)
+
+  ov ∷ Object Json → m (V (Errors (ObjectExpected + e)) (Object a))
+  ov = f >>> map sequence
+
+mapOf ∷
+  ∀ m e a.
+  Monad m ⇒
+  Validator m (ObjectExpected + e) a →
+  Validator m (ObjectExpected + e) (Map String a)
+mapOf v = liftFn Map.fromFoldableWithIndex <<< objectOf v
 
 field_ ∷
   ∀ a errs m.

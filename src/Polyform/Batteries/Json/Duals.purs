@@ -6,9 +6,11 @@ import Data.Argonaut (fromArray, fromBoolean, fromNumber, fromObject, fromString
 import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Encode.Class (class EncodeJson, encodeJson)
 import Data.Either (note)
+import Data.FoldableWithIndex (class FoldableWithIndex, foldlWithIndex)
 import Data.Generic.Rep (class Generic, NoArguments)
 import Data.Identity (Identity)
 import Data.Int (toNumber) as Int
+import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (un)
 import Data.Profunctor (lcmap)
@@ -19,12 +21,13 @@ import Data.Traversable (traverse)
 import Data.Validation.Semigroup (invalid)
 import Data.Variant (Variant)
 import Foreign.Object (Object) as Foreign
-import Foreign.Object (singleton) as Object
+import Foreign.Object (empty, insert, singleton) as Object
 import Polyform.Batteries (Dual) as Batteries
 import Polyform.Batteries.Json.Validators (ArgonautError, ArrayExpected, BooleanExpected, Errors, JNull, NullExpected, NumberExpected, ObjectExpected, StringExpected, FieldMissing)
-import Polyform.Batteries.Json.Validators (Errors, argonaut, array, arrayOf, boolean, error, field, fromNull, fromValidator, int, lmapValidatorVariant, null, nullable, number, object, optionalField, string) as Json.Validators
-import Polyform.Dual (Dual(..), DualD(..), hoistParser) as Dual
-import Polyform.Dual (dual, (~))
+import Polyform.Batteries.Json.Validators (Errors, argonaut, array, arrayOf, boolean, error, field, fromNull, fromValidator, int, lmapValidatorVariant, null, nullable, number, object, objectOf, optionalField, string) as Json.Validators
+import Polyform.Batteries.Json.Validators (mapOf) as Validators
+import Polyform.Dual (Dual(..), DualD(..), hoistParser, parser) as Dual
+import Polyform.Dual (dual, serializer, (~))
 import Polyform.Dual.Generic.Sum (class GDualSum)
 import Polyform.Dual.Generic.Sum (noArgs') as Dual.Generic.Sum
 import Polyform.Dual.Generic.Variant (class GDualVariant)
@@ -77,6 +80,34 @@ lmapDualVariant f = Dual.hoistParser (Json.Validators.lmapValidatorVariant f)
 -- | wrapping with `First`.
 type Object a
   = Foreign.Object (First a)
+
+-- | Raw object
+objectOf ∷
+  ∀ e o m.
+  Monad m ⇒
+  Dual m (ObjectExpected + e) o →
+  Dual m (ObjectExpected + e) (Foreign.Object o)
+objectOf (Dual.Dual (Dual.DualD prs ser)) = dual p s
+  where
+  p = Json.Validators.objectOf prs
+
+  s = map Argonaut.fromObject <<< traverse ser
+
+mapOf ∷
+  ∀ e o m.
+  Monad m ⇒
+  Dual m (ObjectExpected + e) o →
+  Dual m (ObjectExpected + e) (Map String o)
+mapOf d = dual p s
+  where
+  p = Validators.mapOf (Dual.parser d)
+
+  ser = serializer d
+
+  s = map Argonaut.fromObject <<< traverse ser <<< objectFromFoldableWithIndex
+
+  objectFromFoldableWithIndex :: forall f v. FoldableWithIndex String f => f v -> Foreign.Object v
+  objectFromFoldableWithIndex = foldlWithIndex (\k m v -> Object.insert k v m) Object.empty
 
 object ∷
   ∀ errs m.
