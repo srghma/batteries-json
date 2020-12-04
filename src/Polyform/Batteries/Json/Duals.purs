@@ -1,11 +1,13 @@
 module Polyform.Batteries.Json.Duals where
 
 import Prelude
+
 import Data.Argonaut (Json, jsonNull)
 import Data.Argonaut (fromArray, fromBoolean, fromNumber, fromObject, fromString) as Argonaut
 import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Encode.Class (class EncodeJson, encodeJson)
 import Data.Either (note)
+import Data.Enum (class BoundedEnum)
 import Data.FoldableWithIndex (class FoldableWithIndex, foldlWithIndex)
 import Data.Generic.Rep (class Generic, NoArguments)
 import Data.Identity (Identity)
@@ -23,7 +25,9 @@ import Data.Variant (Variant)
 import Foreign.Object (Object) as Foreign
 import Foreign.Object (empty, insert, singleton) as Object
 import Polyform.Batteries (Dual) as Batteries
-import Polyform.Batteries.Json.Validators (ArgonautError, ArrayExpected, BooleanExpected, Errors, JNull, NullExpected, NumberExpected, ObjectExpected, StringExpected, FieldMissing)
+import Polyform.Batteries.Generic.Enum (InvalidEnumIndex)
+import Polyform.Batteries.Generic.Enum (dual) as Enum
+import Polyform.Batteries.Json.Validators (ArgonautError, ArrayExpected, BooleanExpected, Errors, FieldMissing, JNull, NullExpected, NumberExpected, ObjectExpected, StringExpected, IntExpected)
 import Polyform.Batteries.Json.Validators (Errors, argonaut, array, arrayOf, boolean, error, field, fromNull, fromValidator, int, lmapValidatorVariant, null, nullable, number, object, objectOf, optionalField, string) as Json.Validators
 import Polyform.Batteries.Json.Validators (mapOf) as Validators
 import Polyform.Dual (Dual(..), DualD(..), hoistParser, parser) as Dual
@@ -39,7 +43,7 @@ import Polyform.Validator.Dual as Validator.Dual
 import Polyform.Validator.Dual.Generic (sum, variant) as Validator.Dual.Generic
 import Prim.Row (class Cons) as Row
 import Prim.RowList (class RowToList)
-import Type.Prelude (class IsSymbol, SProxy(..), reflectSymbol)
+import Type.Prelude (class IsSymbol, Proxy(..), SProxy(..), reflectSymbol)
 import Type.Row (type (+))
 
 type Base m errs a b
@@ -211,10 +215,11 @@ arrayOf ∷
   Dual m (ArrayExpected + e) (Array o)
 arrayOf (Dual.Dual (Dual.DualD prs ser)) = dual (Json.Validators.arrayOf prs) (map Argonaut.fromArray <<< traverse ser)
 
+
 int ∷
   ∀ errs m.
   Monad m ⇒
-  Dual m ( intExpected ∷ Json | errs ) Int
+  Dual m ( IntExpected + errs ) Int
 int =
   dual
     Json.Validators.int
@@ -397,6 +402,15 @@ argonaut = dual Json.Validators.argonaut ser
   where
   ser = (pure <<< encodeJson)
 
+enum ∷ ∀ a e m. Monad m ⇒ BoundedEnum a ⇒ Proxy a → Dual m (IntExpected + InvalidEnumIndex + e) a
+enum p = fromDual (Enum.dual p) <<< int
+
+enum' ∷ ∀ a e m. Monad m ⇒ BoundedEnum a ⇒ Dual m (IntExpected + InvalidEnumIndex + e) a
+enum' = fromDual (Enum.dual (Proxy ∷ Proxy a)) <<< int
+
+-- enum' ∷ ∀ a e m. Monad m ⇒ BoundedEnum a ⇒ SingleField m (IntExpected + InvalidEnumIndex + e) a
+-- enum' = Enum.dual' <<< Int.dual
+
 -- decode ∷ ∀ a e. JsonDual Identity Identity e a → Json → Either (Validators.Errors (JsonError + e)) a
 -- decode dual j =
 --   unwrap $ unwrap (Validator.Dual.runValidator dual j)
@@ -404,3 +418,4 @@ argonaut = dual Json.Validators.argonaut ser
 -- encode ∷ ∀ a e. JsonDual Identity Identity e a → a → Json
 -- encode dual = un Identity <<< Validator.Dual.runSerializer dual
 -- 
+

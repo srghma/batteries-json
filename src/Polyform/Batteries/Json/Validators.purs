@@ -29,6 +29,8 @@ module Polyform.Batteries.Json.Validators
   , arrayOf
   , boolean
   , consErrorsPath
+  , enum
+  , enum'
   , error
   , fromValidator
   , liftErrors
@@ -59,6 +61,7 @@ import Data.Argonaut.Decode.Class (class DecodeJson, decodeJson)
 import Data.Array (fromFoldable, index, singleton) as Array
 import Data.Bifunctor (lmap)
 import Data.Either (note)
+import Data.Enum (class BoundedEnum)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int (fromNumber) as Int
@@ -78,10 +81,12 @@ import Data.Variant (inj) as Variant
 import Foreign.Object (Object)
 import Foreign.Object (lookup) as Object
 import Polyform.Batteries (Errors, Validator) as Batteries
+import Polyform.Batteries.Generic.Enum (InvalidEnumIndex)
+import Polyform.Batteries.Generic.Enum (validator) as Enum
 import Polyform.Validator (Validator, liftFn, liftFnEither, liftFnMaybe, lmapValidator) as Validator
 import Polyform.Validator (liftFn, liftFnMV, liftFnMaybe, runValidator)
 import Prim.Row (class Cons) as Row
-import Type.Prelude (class IsSymbol)
+import Type.Prelude (class IsSymbol, Proxy(..))
 import Type.Row (type (+))
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -138,7 +143,7 @@ type Validator m errs o
 -- |
 -- | ```
 -- | nonBlankString ∷ ∀ e m. Monad m ⇒ Validator m (stringExpected ∷ Json, nonBlankExpected ∷ Unit | e) Json String
--- | nonBlankString = liftValidator String.nonBlank <<< string
+-- | nonBlankString = fromValidator String.nonBlank <<< string
 -- | ```
 fromValidator ∷ ∀ errs m i. Monad m ⇒ Batteries.Validator m errs i ~> Base m errs i
 fromValidator = Validator.lmapValidator liftErrors
@@ -359,3 +364,9 @@ type ArgonautError e
 
 argonaut ∷ ∀ a e m. Monad m ⇒ DecodeJson a ⇒ Validator m (ArgonautError + e) a
 argonaut = Validator.liftFnEither (lmap (error _argonautError) <<< decodeJson)
+
+enum ∷ ∀ a err m. Monad m ⇒ BoundedEnum a ⇒ Proxy a → Validator m (IntExpected + InvalidEnumIndex + err) a
+enum p = fromValidator (Enum.validator p) <<< int
+
+enum' ∷ ∀ a err m. Monad m ⇒ BoundedEnum a ⇒ Validator m (IntExpected + InvalidEnumIndex + err) a
+enum' = fromValidator (Enum.validator (Proxy ∷ Proxy a)) <<< int
