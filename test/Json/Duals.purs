@@ -1,8 +1,8 @@
 module Test.Polyform.Batteries.Json.Duals where
 
 import Prelude
+import Data.Argonaut (fromArray, fromNumber, fromObject, fromString, jsonNull)
 import Data.Argonaut (fromBoolean, fromNumber) as Argonaut
-import Data.Argonaut (fromNumber, fromObject, fromString, jsonNull)
 import Data.Argonaut (fromString) as Argounaut
 import Data.Functor.Invariant (imap)
 import Data.Generic.Rep (class Generic)
@@ -51,6 +51,30 @@ instance showSum ∷ Show Sum where
 data Single
   = Single String
 
+sumD' ∷
+  Json.Duals.Dual
+    Aff
+    ( BooleanExpected
+        + FieldMissing
+        + IntExpected
+        + IncorrectTag
+        + NullExpected
+        + NumberExpected
+        + ObjectExpected
+        + StringExpected
+        + ()
+    )
+    Sum
+sumD' =
+  sum
+    { "S": identity string
+    , "I": identity int
+    , "B": identity boolean
+    , "N": identity number
+    , "E": identity noArgs
+    , "U": identity unitDual
+    }
+
 derive instance genericSingle ∷ Generic Single _
 
 _b = SProxy ∷ SProxy "b"
@@ -63,6 +87,9 @@ _i = SProxy ∷ SProxy "i"
 
 unitDual ∷ ∀ e m. Monad m ⇒ Json.Duals.Dual m (NullExpected + e) Unit
 unitDual = imap (const unit) (const jnull) null
+
+msg ∷ ∀ a. a → String
+msg _ = ""
 
 variant ∷
   forall e m.
@@ -101,7 +128,7 @@ sumVariantDual = Json.Duals.object >>> tagWithValue >>> valueDual
           { t: "s", v } → runValidator (Json.Validators.string >>> Validator.liftFn (inj _s)) v
           { t: "i", v } → runValidator (Json.Validators.int >>> Validator.liftFn (inj _i)) v
           { t: "b", v } → runValidator (Json.Validators.boolean >>> Validator.liftFn (inj _b)) v
-          { t, v } → pure $ invalid $ Json.Validators.error _incorrectTag t
+          { t, v } → pure $ invalid $ Json.Validators.error _incorrectTag msg t 
 
   serializer =
     match
@@ -160,6 +187,22 @@ suite =
                       (const $ failure "Validation failed")
                       (_ `equal` expected)
                       parsed
+        -- test "Tokenized"
+        --   $ do
+        --       let
+        --         input =
+        --           fromArray
+        --             [ fromNumber (toNumber 8)
+        --             , fromString "test"
+        --             , fromNumber 8.0
+        --             ]
+        --         expected = { foo: 8, bar: "test", baz: 8.0 }
+        --       parsed ← runValidator (parser obj) input
+        --       -- void $ runSerializer objs []
+        --       unV
+        --         (const $ failure "Validation failed")
+        --         (_ `equal` expected)
+        --         parsed
         Test.Unit.suite "sum handling"
           $ do
               test "through generic helper"
@@ -181,12 +224,12 @@ suite =
                           Sum
                       sumD =
                         sum
-                          { "S": identity string
-                          , "I": identity int
-                          , "B": identity boolean
-                          , "N": identity number
-                          , "E": identity noArgs
-                          , "U": identity unitDual
+                          { "S": (\a → a) string
+                          , "I": (\a → a) int
+                          , "B": (\a → a) boolean
+                          , "N": (\a → a) number
+                          , "E": (\a → a) noArgs
+                          , "U": (\a → a) unitDual
                           }
 
                       s =
@@ -236,13 +279,14 @@ suite =
 
                       _json = SProxy ∷ SProxy "json"
 
+
                       expectedError =
-                        Json.Validators.error _stringExpected (Argonaut.fromNumber 8.0)
-                          <> Json.Validators.error _incorrectTag "S"
-                          <> Json.Validators.error _incorrectTag "S"
-                          <> Json.Validators.error _incorrectTag "S"
-                          <> Json.Validators.error _incorrectTag "S"
-                          <> Json.Validators.error _incorrectTag "S"
+                        Json.Validators.error _stringExpected msg (Argonaut.fromNumber 8.0)
+                          <> Json.Validators.error _incorrectTag msg "S"
+                          <> Json.Validators.error _incorrectTag msg "S"
+                          <> Json.Validators.error _incorrectTag msg "S"
+                          <> Json.Validators.error _incorrectTag msg "S"
+                          <> Json.Validators.error _incorrectTag msg "S"
                     parsedS' ← runValidator (parser sumD) s'
                     unV
                       ( \err →

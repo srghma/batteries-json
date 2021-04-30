@@ -29,7 +29,7 @@ validator =
   Validator.liftFnV $ Argonaut.jsonParser
     >>> case _ of
         Right j → pure j
-        Left e → Batteries.invalid _decodingError e
+        Left e → Batteries.invalid _decodingError (const $ "Invalid JSON") e
 
 dual ∷
   ∀ e m.

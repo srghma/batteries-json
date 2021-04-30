@@ -1,7 +1,6 @@
 module Polyform.Batteries.Json.Duals where
 
 import Prelude
-
 import Data.Argonaut (Json, jsonNull)
 import Data.Argonaut (fromArray, fromBoolean, fromNumber, fromObject, fromString) as Argonaut
 import Data.Argonaut.Decode.Class (class DecodeJson)
@@ -46,17 +45,17 @@ import Prim.RowList (class RowToList)
 import Type.Prelude (class IsSymbol, Proxy(..), SProxy(..), reflectSymbol)
 import Type.Row (type (+))
 
-type Base m errs a b
-  = Validator.Dual.Dual m (Errors errs) a b
+type Base m errs
+  = Validator.Dual.Dual m (Errors errs)
 
-type Dual m errs b
-  = Base m errs Json b
+type Dual m errs
+  = Base m errs Json
 
-type Pure errs b
-  = Base Identity errs Json b
+type Pure errs
+  = Base Identity errs Json
 
-type Field m errs b
-  = Base m errs (Object Json) b
+type Field m errs
+  = Base m errs (Object Json)
 
 -- | Lift any Dual by enhancing error structure by adding an extra empty path.
 -- | Please check `Duals.Validators.fromValidator` for the details.
@@ -156,7 +155,6 @@ optionalField label d = dual prs ser
 
   prs =
     lcmap
-      -- | Should we use unsafeCoerce here
       (map (un First))
       (Json.Validators.optionalField label fieldPrs)
 
@@ -215,11 +213,10 @@ arrayOf ∷
   Dual m (ArrayExpected + e) (Array o)
 arrayOf (Dual.Dual (Dual.DualD prs ser)) = dual (Json.Validators.arrayOf prs) (map Argonaut.fromArray <<< traverse ser)
 
-
 int ∷
   ∀ errs m.
   Monad m ⇒
-  Dual m ( IntExpected + errs ) Int
+  Dual m (IntExpected + errs) Int
 int =
   dual
     Json.Validators.int
@@ -330,7 +327,7 @@ sum ∷
   GDualSum (Validator.Validator m (Json.Validators.Errors (CoproductErrors + e))) m Json rep r ⇒
   { | r } →
   Dual m (CoproductErrors + e) a
-sum = Validator.Dual.Generic.sum tagged
+sum r = Validator.Dual.Generic.sum tagged r
 
 _incorrectTag = SProxy ∷ SProxy "incorrectTag"
 
@@ -354,11 +351,13 @@ taggedWith label tag (Dual.Dual (Dual.DualD prs ser)) = object >>> tag >>> tagge
 
       ser' = map { t: fieldName, v: _ } <<< ser
 
+      msg t = "Incorrect tag: " <> show t
+
       prs' =
         prs
           <<< Validator.liftFnV \{ t, v } →
               if fieldName /= t then
-                invalid $ Json.Validators.error _incorrectTag t
+                invalid $ Json.Validators.error _incorrectTag msg t
               else
                 pure v
     in
@@ -410,7 +409,6 @@ enum' = fromDual (Enum.dual (Proxy ∷ Proxy a)) <<< int
 
 -- enum' ∷ ∀ a e m. Monad m ⇒ BoundedEnum a ⇒ SingleField m (IntExpected + InvalidEnumIndex + e) a
 -- enum' = Enum.dual' <<< Int.dual
-
 -- decode ∷ ∀ a e. JsonDual Identity Identity e a → Json → Either (Validators.Errors (JsonError + e)) a
 -- decode dual j =
 --   unwrap $ unwrap (Validator.Dual.runValidator dual j)
@@ -418,4 +416,3 @@ enum' = fromDual (Enum.dual (Proxy ∷ Proxy a)) <<< int
 -- encode ∷ ∀ a e. JsonDual Identity Identity e a → a → Json
 -- encode dual = un Identity <<< Validator.Dual.runSerializer dual
 -- 
-
