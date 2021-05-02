@@ -158,7 +158,7 @@ optionalField label d = dual prs ser
       (map (un First))
       (Json.Validators.optionalField label fieldPrs)
 
-  vSer ∷ Maybe a → m Json
+  vSer ∷ Maybe a → Identity Json
   vSer = un Star $ (Star pure ||| Star fieldSer) <<< Star (pure <<< note jsonNull)
 
   ser = pure <<< (Object.singleton label <<< First) <=< vSer
@@ -259,7 +259,7 @@ insert ∷
   Dual m (FieldMissing + e) o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors (FieldMissing + e)))
-    m
+    Identity
     (Object Json)
     { | ser' }
     { | prs }
@@ -278,7 +278,7 @@ insertOptional ∷
   Dual m e o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors e))
-    m
+    Identity
     (Object Json)
     { | ser' }
     { | prs }
@@ -297,7 +297,7 @@ insertConst ∷
   o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors (FieldMissing + e)))
-    m
+    Identity
     (Object Json)
     { | ser' }
     { | prs }
@@ -315,7 +315,7 @@ variant ∷
   ∀ e d dl m v.
   Monad m ⇒
   RowToList d dl ⇒
-  GDualVariant (Validator.Validator m (Json.Validators.Errors (CoproductErrors + e))) m Json dl d v ⇒
+  GDualVariant (Validator.Validator m (Json.Validators.Errors (CoproductErrors + e))) Identity Json dl d v ⇒
   { | d } →
   Dual m (CoproductErrors + e) (Variant v)
 variant = Validator.Dual.Generic.variant tagged
@@ -324,7 +324,7 @@ sum ∷
   ∀ a m e rep r.
   Monad m ⇒
   Generic a rep ⇒
-  GDualSum (Validator.Validator m (Json.Validators.Errors (CoproductErrors + e))) m Json rep r ⇒
+  GDualSum (Validator.Validator m (Json.Validators.Errors (CoproductErrors + e))) Identity Json rep r ⇒
   { | r } →
   Dual m (CoproductErrors + e) a
 sum r = Validator.Dual.Generic.sum tagged r
