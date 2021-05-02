@@ -81,7 +81,7 @@ import Data.Validation.Semigroup (V)
 import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Foreign.Object (lookup) as Object
-import Polyform.Batteries (Error, Errors, Validator, error) as Batteries
+import Polyform.Batteries (Errors, Msg, Validator, error) as Batteries
 import Polyform.Batteries.Generic.Enum (InvalidEnumIndex)
 import Polyform.Batteries.Generic.Enum (validator) as Enum
 import Polyform.Validator (Validator, liftFn, liftFnEither, liftFnMaybe, lmapValidator) as Validator
@@ -124,7 +124,7 @@ type ErrorsBase errs
   = Array { path ∷ Path, errors ∷ Array errs }
 
 type Errors errs
-  = ErrorsBase (Batteries.Error errs)
+  = ErrorsBase (Batteries.Msg errs)
 
 type Base m errs i o
   = Validator.Validator m (Errors errs) i o
