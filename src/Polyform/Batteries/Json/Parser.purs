@@ -9,10 +9,10 @@ import Polyform.Batteries.Json.Duals (Base) as Duals
 import Polyform.Batteries.Json.Duals (fromDual)
 import Polyform.Dual (dual) as Dual
 import Polyform.Validator (liftFnV) as Validator
-import Type.Prelude (SProxy(..))
+import Type.Prelude (Proxy(..))
 import Type.Row (type (+))
 
-_decodingError = SProxy ∷ SProxy "jsonDecodingError"
+_decodingError = Proxy ∷ Proxy "jsonDecodingError"
 
 type JsonDecodingError e
   = ( jsonDecodingError ∷ String | e )

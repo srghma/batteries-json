@@ -12,7 +12,6 @@ import Data.Validation.Semigroup (unV)
 import Data.Variant (inj)
 import Effect.Aff (Aff)
 import Foreign.Object (fromFoldable) as Object
-import Global.Unsafe (unsafeStringify)
 import Polyform.Batteries.Json.Validators (Segment(..), _fieldMissing, _intExpected, array, consErrorsPath, error, field, int, liftErrors, number, object, string)
 import Polyform.Batteries.Json.Validators (Validator) as Json
 import Polyform.Tokenized (unliftUntokenized) as Tokenized
@@ -23,6 +22,7 @@ import Record.Extra (sequenceRecord)
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
 import Test.Unit.Assert (equal)
+import Test.Utils (unsafeStringify)
 
 arrayToList = Validator.liftFn List.fromFoldable
 
@@ -125,16 +125,16 @@ suite =
 
                 expectedError =
                   consErrorsPath (Key "foo")
-                    $ consErrorsPath (Key "x") (liftErrors [ { msg: defer \_ → "WRONG", info: inj _intExpected (fromString "incorrect int") }])
+                    $ consErrorsPath (Key "x") (liftErrors [ { msg: defer \_ → "WRONG", info: inj _intExpected (fromString "incorrect int") } ])
                     <> consErrorsPath (Key "y") (liftErrors [ { msg: defer \_ → "WRONG", info: inj _fieldMissing "y" } ])
               parsed ← runValidator obj input
               unV
                 ( \err →
                     when (err /= expectedError)
                       $ failure
-                          ( "Expecting \""
+                          ( "Expecting:\n\""
                               <> unsafeStringify expectedError
-                              <> "\" but got: \""
+                              <> "\"\n    but got:\n\""
                               <> unsafeStringify err
                               <> "\""
                           )

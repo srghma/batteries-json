@@ -42,7 +42,7 @@ import Polyform.Validator.Dual as Validator.Dual
 import Polyform.Validator.Dual.Generic (sum, variant) as Validator.Dual.Generic
 import Prim.Row (class Cons) as Row
 import Prim.RowList (class RowToList)
-import Type.Prelude (class IsSymbol, Proxy(..), SProxy(..), reflectSymbol)
+import Type.Prelude (class IsSymbol, Proxy(..), Proxy(..), reflectSymbol)
 import Type.Row (type (+))
 
 type Base m errs
@@ -255,7 +255,7 @@ insert ∷
   Row.Cons' l o prs prs' ⇒
   IsSymbol l ⇒
   Monad m ⇒
-  SProxy l →
+  Proxy l →
   Dual m (FieldMissing + e) o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors (FieldMissing + e)))
@@ -274,7 +274,7 @@ insertOptional ∷
   Row.Cons' l (Maybe o) prs prs' ⇒
   IsSymbol l ⇒
   Monad m ⇒
-  SProxy l →
+  Proxy l →
   Dual m e o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors e))
@@ -293,7 +293,7 @@ insertConst ∷
   Row.Cons' l o prs prs' ⇒
   IsSymbol l ⇒
   Monad m ⇒
-  SProxy l →
+  Proxy l →
   o →
   Dual.Record.Builder
     (Validator.Validator m (Json.Validators.Errors (FieldMissing + e)))
@@ -329,7 +329,7 @@ sum ∷
   Dual m (CoproductErrors + e) a
 sum r = Validator.Dual.Generic.sum tagged r
 
-_incorrectTag = SProxy ∷ SProxy "incorrectTag"
+_incorrectTag = Proxy ∷ Proxy "incorrectTag"
 
 type IncorrectTag e
   = ( incorrectTag ∷ String | e )
@@ -338,7 +338,7 @@ taggedWith ∷
   ∀ a e l m.
   Monad m ⇒
   IsSymbol l ⇒
-  SProxy l →
+  Proxy l →
   Base m (CoproductErrors + e) (Object Json) { t ∷ String, v ∷ Json } →
   Dual m (CoproductErrors + e) a →
   Dual m (CoproductErrors + e) a
@@ -375,7 +375,7 @@ tagged ∷
   ∀ a e l m.
   Monad m ⇒
   IsSymbol l ⇒
-  SProxy l →
+  Proxy l →
   Dual m (CoproductErrors + e) a →
   Dual m (CoproductErrors + e) a
 tagged label = taggedWith label defaultTagging
@@ -385,7 +385,7 @@ on ∷
   Monad m ⇒
   Row.Cons l a r r' ⇒
   IsSymbol l ⇒
-  SProxy l →
+  Proxy l →
   Dual m (CoproductErrors + e) a →
   Dual m (CoproductErrors + e) (Variant r) →
   Dual m (CoproductErrors + e) (Variant r')

@@ -1,19 +1,18 @@
 module Test.Polyform.Batteries.Json.Duals where
 
 import Prelude
+import Data.Argonaut (Json, fromBoolean, fromNumber) as Argonaut
 import Data.Argonaut (fromArray, fromNumber, fromObject, fromString, jsonNull)
-import Data.Argonaut (fromBoolean, fromNumber) as Argonaut
 import Data.Argonaut (fromString) as Argounaut
 import Data.Functor.Invariant (imap)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Int (toNumber)
+import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested ((/\))
 import Data.Validation.Semigroup (invalid, unV)
 import Data.Variant (Variant, inj, match)
 import Effect.Aff (Aff)
 import Foreign.Object (fromFoldable) as Object
-import Global.Unsafe (unsafeStringify)
 import Polyform.Batteries.Json (NullExpected, jnull)
 import Polyform.Batteries.Json.Duals (CoproductErrors, IncorrectTag, _incorrectTag, arrayOf, boolean, int, noArgs, null, number, object, on, string, sum, (:=))
 import Polyform.Batteries.Json.Duals (Dual, field, object, string) as Json.Duals
@@ -30,7 +29,8 @@ import Prelude (unit) as Prelude
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
 import Test.Unit.Assert (equal)
-import Type.Prelude (SProxy(..))
+import Test.Utils (unsafeStringify)
+import Type.Prelude (Proxy(..))
 import Type.Row (type (+))
 
 data Sum
@@ -77,13 +77,13 @@ sumD' =
 
 derive instance genericSingle ∷ Generic Single _
 
-_b = SProxy ∷ SProxy "b"
+_b = Proxy ∷ Proxy "b"
 
-_s = SProxy ∷ SProxy "s"
+_s = Proxy ∷ Proxy "s"
 
-_u = SProxy ∷ SProxy "u"
+_u = Proxy ∷ Proxy "u"
 
-_i = SProxy ∷ SProxy "i"
+_i = Proxy ∷ Proxy "i"
 
 unitDual ∷ ∀ e m. Monad m ⇒ Json.Duals.Dual m (NullExpected + e) Unit
 unitDual = imap (const unit) (const jnull) null
@@ -97,9 +97,9 @@ variant ∷
   Json.Duals.Dual m (CoproductErrors + IntExpected + NullExpected + e) (Variant ( i ∷ Int, s ∷ String, u ∷ Unit ))
 variant =
   case_
-    # on (SProxy ∷ SProxy "s") string
-    # on (SProxy ∷ SProxy "u") unitDual
-    # on (SProxy ∷ SProxy "i") int
+    # on (Proxy ∷ Proxy "s") string
+    # on (Proxy ∷ Proxy "u") unitDual
+    # on (Proxy ∷ Proxy "i") int
 
 sumVariantDual ∷
   ∀ e.
@@ -128,7 +128,7 @@ sumVariantDual = Json.Duals.object >>> tagWithValue >>> valueDual
           { t: "s", v } → runValidator (Json.Validators.string >>> Validator.liftFn (inj _s)) v
           { t: "i", v } → runValidator (Json.Validators.int >>> Validator.liftFn (inj _i)) v
           { t: "b", v } → runValidator (Json.Validators.boolean >>> Validator.liftFn (inj _b)) v
-          { t, v } → pure $ invalid $ Json.Validators.error _incorrectTag msg t 
+          { t, v } → pure $ invalid $ Json.Validators.error _incorrectTag msg t
 
   serializer =
     match
@@ -161,11 +161,11 @@ suite =
                   where
                   d =
                     Dual.Record.build
-                      $ (SProxy ∷ SProxy "foo")
+                      $ (Proxy ∷ Proxy "foo")
                       := int
-                      <<< (SProxy ∷ SProxy "bar")
+                      <<< (Proxy ∷ Proxy "bar")
                       := string
-                      <<< (SProxy ∷ SProxy "baz")
+                      <<< (Proxy ∷ Proxy "baz")
                       := number
 
                 objs = arrayOf obj
@@ -277,8 +277,7 @@ suite =
                           $ Object.fromFoldable
                               [ "tag" /\ fromString "S", "value" /\ fromNumber 8.0 ]
 
-                      _json = SProxy ∷ SProxy "json"
-
+                      _json = Proxy ∷ Proxy "json"
 
                       expectedError =
                         Json.Validators.error _stringExpected msg (Argonaut.fromNumber 8.0)

@@ -55,6 +55,7 @@ module Polyform.Batteries.Json.Validators
   ) where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Data.Argonaut (Json, stringify)
 import Data.Argonaut (JsonDecodeError, fromArray, isNull, jsonNull, toArray, toBoolean, toNumber, toObject, toString) as Argonaut
@@ -64,7 +65,6 @@ import Data.Bifunctor (lmap)
 import Data.Either (note)
 import Data.Enum (class BoundedEnum)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Identity (Identity)
 import Data.Int (fromNumber) as Int
 import Data.List (List(..), (:))
@@ -73,8 +73,8 @@ import Data.Map (fromFoldableWithIndex) as Map
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
 import Data.Profunctor.Choice ((|||))
+import Data.Show.Generic (genericShow)
 import Data.String (joinWith) as String
-import Data.Symbol (SProxy(..))
 import Data.Traversable (sequence)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Validation.Semigroup (V)
@@ -87,7 +87,8 @@ import Polyform.Batteries.Generic.Enum (validator) as Enum
 import Polyform.Validator (Validator, liftFn, liftFnEither, liftFnMaybe, lmapValidator) as Validator
 import Polyform.Validator (liftFn, liftFnMV, liftFnMaybe, runValidator)
 import Prim.Row (class Cons) as Row
-import Type.Prelude (class IsSymbol, Proxy(..))
+import Type.Prelude (class IsSymbol)
+import Type.Proxy (Proxy(..))
 import Type.Row (type (+))
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -118,25 +119,24 @@ printPath = String.joinWith "." <<< map printSegment <<< Array.fromFoldable
 
   printSegment (Index i) = show i
 
--- | We use `ErrorsBase` when doing flattening of errors
--- | representation in the Batteries.Messages.
+-- | TODO: turn errors into `NonEmptyArray`
 type ErrorsBase errs
   = Array { path ∷ Path, errors ∷ Array errs }
 
 type Errors errs
   = ErrorsBase (Batteries.Msg errs)
 
-type Base m errs i o
-  = Validator.Validator m (Errors errs) i o
+type Base m errs
+  = Validator.Validator m (Errors errs)
 
-type Field m errs o
-  = Base m errs (Object Json) o
+type Field m errs
+  = Base m errs (Object Json)
 
-type Validator m errs o
-  = Base m errs Json o
+type Validator m errs
+  = Base m errs Json
 
-type Pure errs o
-  = Validator Identity errs o
+type Pure errs
+  = Validator Identity errs
 
 -- | TODO: Renamo to `liftValidator`
 -- | Lifts validators which represents error as `Array (Variant errs)`
@@ -153,7 +153,7 @@ type Pure errs o
 fromValidator ∷ ∀ errs m i. Monad m ⇒ Batteries.Validator m errs i ~> Base m errs i
 fromValidator = Validator.lmapValidator liftErrors
 
-error ∷ ∀ errs e l r. Row.Cons l e r errs ⇒ IsSymbol l ⇒ SProxy l → (e → String) → e → Errors errs
+error ∷ ∀ errs e l r. Row.Cons l e r errs ⇒ IsSymbol l ⇒ Proxy l → (e → String) → e → Errors errs
 error label msg = liftErrors <<< Batteries.error label msg
 
 liftErrors ∷ ∀ errs. Batteries.Errors errs → Errors errs
@@ -172,7 +172,7 @@ consErrorsPath segment = map step
   where
   step { path, errors } = { path: segment : path, errors }
 
-_objectExpected = SProxy ∷ SProxy "objectExpected"
+_objectExpected = Proxy ∷ Proxy "objectExpected"
 
 type ObjectExpected e
   = ( objectExpected ∷ Json | e )
@@ -214,7 +214,7 @@ field_ ∷
   Field m errs a
 field_ name fv = Validator.liftFn (Object.lookup name) >>> Validator.lmapValidator (consErrorsPath (Key name)) fv
 
-_fieldMissing = SProxy ∷ SProxy "fieldMissing"
+_fieldMissing = Proxy ∷ Proxy "fieldMissing"
 
 type FieldMissing e
   = ( fieldMissing ∷ String | e )
@@ -259,7 +259,7 @@ nullableOptionalField ∷
   Field m (NullExpected + errs) (Maybe a)
 nullableOptionalField name fv = join <$> optionalField name (nullable fv)
 
-_arrayExpected = SProxy ∷ SProxy "arrayExpected"
+_arrayExpected = Proxy ∷ Proxy "arrayExpected"
 
 type ArrayExpected e
   = ( arrayExpected ∷ Json | e )
@@ -286,7 +286,7 @@ arrayOf v = array >>> liftFnMV av
   av ∷ Array Json → m (V (Errors (ArrayExpected + e)) (Array a))
   av = f >>> map sequence
 
-_indexMissing = SProxy ∷ SProxy "indexMissing"
+_indexMissing = Proxy ∷ Proxy "indexMissing"
 
 type IndexMissing e
   = ( indexMissing ∷ { arr ∷ Array Json, idx ∷ Int } | e )
@@ -306,7 +306,7 @@ index idx = liftFnMaybe err (flip Array.index idx)
       <> " is missing an element at index : "
       <> show e.idx
 
-_nullExpected = SProxy ∷ SProxy "nullExpected"
+_nullExpected = Proxy ∷ Proxy "nullExpected"
 
 type NullExpected e
   = ( nullExpected ∷ Json | e )
@@ -323,7 +323,7 @@ nullable ∷
   Validator m (NullExpected + errs) (Maybe a)
 nullable fv = (null *> pure Nothing) <|> (Just <$> fv)
 
-_intExpected = SProxy ∷ SProxy "intExpected"
+_intExpected = Proxy ∷ Proxy "intExpected"
 
 type IntExpected e
   = ( intExpected ∷ Json | e )
@@ -333,7 +333,7 @@ int = Validator.liftFnMaybe (error _intExpected msg) (Argonaut.toNumber >=> Int.
   where
   msg = append "Int expected but got: " <<< stringify
 
-_booleanExpected = SProxy ∷ SProxy "booleanExpected"
+_booleanExpected = Proxy ∷ Proxy "booleanExpected"
 
 type BooleanExpected e
   = ( booleanExpected ∷ Json | e )
@@ -343,7 +343,7 @@ boolean = Validator.liftFnMaybe (error _booleanExpected msg) Argonaut.toBoolean
   where
   msg = append "Boolean expected but got: " <<< stringify
 
-_stringExpected = SProxy ∷ SProxy "stringExpected"
+_stringExpected = Proxy ∷ Proxy "stringExpected"
 
 type StringExpected e
   = ( stringExpected ∷ Json | e )
@@ -353,7 +353,7 @@ string = Validator.liftFnMaybe (error _stringExpected msg) Argonaut.toString
   where
   msg = append "String expected but got: " <<< stringify
 
-_numberExpected = SProxy ∷ SProxy "numberExpected"
+_numberExpected = Proxy ∷ Proxy "numberExpected"
 
 type NumberExpected e
   = ( numberExpected ∷ Json | e )
@@ -383,7 +383,7 @@ toNull = Argonaut.isNull >>> if _ then Just jnull else Nothing
 fromNull ∷ JNull → Json
 fromNull = unsafeCoerce
 
-_argonautError = SProxy ∷ SProxy "argonautError"
+_argonautError = Proxy ∷ Proxy "argonautError"
 
 type ArgonautError e
   = ( argonautError ∷ Argonaut.JsonDecodeError | e )
