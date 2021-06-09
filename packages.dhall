@@ -4,21 +4,42 @@ let mkPackage =
 let upstream =
       https://github.com/purescript/package-sets/releases/download/psc-0.13.8-20201021/packages.dhall sha256:55ebdbda1bd6ede4d5307fbc1ef19988c80271b4225d833c8d6fb9b6fb1aa6d8
 
-let polyform = mkPackage
-  [ "newtype" , "ordered-collections" , "variant" , "profunctor" , "invariant" , "foreign-object" , "run" , "transformers" , "generics-rep" , "validation" , "foreign" ]
-  "https://github.com/purescript-polyform/polyform.git"
-  "master"
+let polyform =
+  mkPackage
+    [ "newtype"
+    , "ordered-collections"
+    , "variant"
+    , "profunctor"
+    , "invariant"
+    , "foreign-object"
+    , "run"
+    , "transformers"
+    , "generics-rep"
+    , "validation"
+    , "foreign"
+    ]
+    "https://github.com/purescript-polyform/polyform.git"
+    "v0.8.2"
 
-let polyform-batteries-core = mkPackage
-  [ "affjax", "argonaut", "debug", "decimals", "filterable", "numbers"
-  , "polyform", "prelude", "record-extra", "test-unit"
-  ]
-  "https://github.com/purescript-polyform/batteries-core.git"
-  "master"
+let polyform-batteries-core =
+  mkPackage
+    [ "affjax"
+    , "argonaut"
+    , "debug"
+    , "decimals"
+    , "filterable"
+    , "numbers"
+    , "polyform"
+    , "prelude"
+    , "record-extra"
+    , "test-unit"
+    ]
+    "https://github.com/purescript-polyform/batteries-core.git"
+    "master"
 
-let additions =
-  { polyform = ../polyform/spago.dhall as Location
-  , polyform-batteries-core = ../batteries-core/spago.dhall as Location
-  }
 
-in  upstream // additions
+in upstream
+  with
+    polyform = ../polyform/spago.dhall as Location
+  with
+    polyform-batteries-core = ../batteries-core/spago.dhall as Location
