@@ -3,6 +3,7 @@ Welcome to a Spago project!
 You can edit this file as you like.
 -}
 { name = "my-project"
+, license = "BSD-3-Clause"
 , dependencies =
   [ "aff"
   , "argonaut"
@@ -40,5 +41,6 @@ You can edit this file as you like.
   , "variant"
   ]
 , packages = ./packages.dhall
+, repository = "https://github.com/purescript-polyform/batteries-json.git"
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }
