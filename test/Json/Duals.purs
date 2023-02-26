@@ -1,16 +1,24 @@
 module Test.Polyform.Batteries.Json.Duals where
 
 import Prelude
-import Data.Argonaut (Json, fromBoolean, fromNumber) as Argonaut
+
+import Data.Argonaut (Json, fromBoolean, fromNumber, stringify) as Argonaut
 import Data.Argonaut (fromArray, fromNumber, fromObject, fromString, jsonNull)
 import Data.Argonaut (fromString) as Argounaut
+import Data.Array (zip)
+import Data.Array as Array
+import Data.Either (Either(..))
+import Data.Foldable (for_)
 import Data.Functor.Invariant (imap)
 import Data.Generic.Rep (class Generic)
 import Data.Int (toNumber)
+import Data.Lazy (force)
+import Data.Newtype (un)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested ((/\))
-import Data.Validation.Semigroup (invalid, unV)
+import Data.Validation.Semigroup (V(..), invalid)
 import Data.Variant (Variant, inj, match)
+import Debug (traceM)
 import Effect.Aff (Aff)
 import Foreign.Object (fromFoldable) as Object
 import Polyform.Batteries.Json (NullExpected, jnull)
@@ -26,6 +34,7 @@ import Polyform.Validator (liftFn) as Validator
 import Polyform.Validator (liftFnMV) as Validtor
 import Polyform.Validator (runValidator)
 import Prelude (unit) as Prelude
+import Test.Json.Messages (mkIncorrectTagMsg, mkStringMsg)
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
 import Test.Unit.Assert (equal)
@@ -47,6 +56,11 @@ derive instance eqSum ∷ Eq Sum
 
 instance showSum ∷ Show Sum where
   show = genericShow
+
+unV :: forall err result t. (err -> t) -> (result -> t) -> V err result -> t
+unV onFailure onSuccess = case _ of
+  V (Left e) → onFailure e
+  V (Right a) → onSuccess a
 
 data Single
   = Single String
@@ -280,15 +294,15 @@ suite =
                       _json = Proxy ∷ Proxy "json"
 
                       expectedError =
-                        Json.Validators.error _stringExpected msg (Argonaut.fromNumber 8.0)
-                          <> Json.Validators.error _incorrectTag msg "S"
-                          <> Json.Validators.error _incorrectTag msg "S"
-                          <> Json.Validators.error _incorrectTag msg "S"
-                          <> Json.Validators.error _incorrectTag msg "S"
-                          <> Json.Validators.error _incorrectTag msg "S"
+                        Json.Validators.error _stringExpected mkStringMsg (Argonaut.fromNumber 8.0)
+                          <> Json.Validators.error _incorrectTag mkIncorrectTagMsg "S"
+                          <> Json.Validators.error _incorrectTag mkIncorrectTagMsg "S"
+                          <> Json.Validators.error _incorrectTag mkIncorrectTagMsg "S"
+                          <> Json.Validators.error _incorrectTag mkIncorrectTagMsg "S"
+                          <> Json.Validators.error _incorrectTag mkIncorrectTagMsg "S"
                     parsedS' ← runValidator (parser sumD) s'
                     unV
-                      ( \err →
+                      ( \err → do
                           when (err /= expectedError)
                             $ failure
                                 ( "Expecting \""

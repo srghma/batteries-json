@@ -81,7 +81,7 @@ import Data.Validation.Semigroup (V)
 import Data.Variant (Variant)
 import Foreign.Object (Object)
 import Foreign.Object (lookup) as Object
-import Polyform.Batteries (Errors, Msg, Validator, error) as Batteries
+import Polyform.Batteries (Errors', Msg, Validator', error) as Batteries
 import Polyform.Batteries.Generic.Enum (InvalidEnumIndex)
 import Polyform.Batteries.Generic.Enum (validator) as Enum
 import Polyform.Validator (Validator, liftFn, liftFnEither, liftFnMaybe, lmapValidator) as Validator
@@ -150,13 +150,13 @@ type Pure errs
 -- | nonBlankString ∷ ∀ e m. Monad m ⇒ Validator m (stringExpected ∷ Json, nonBlankExpected ∷ Unit | e) Json String
 -- | nonBlankString = fromValidator String.nonBlank <<< string
 -- | ```
-fromValidator ∷ ∀ errs m i. Monad m ⇒ Batteries.Validator m errs i ~> Base m errs i
+fromValidator ∷ ∀ errs m i. Monad m ⇒ Batteries.Validator' m errs i ~> Base m errs i
 fromValidator = Validator.lmapValidator liftErrors
 
 error ∷ ∀ errs e l r. Row.Cons l e r errs ⇒ IsSymbol l ⇒ Proxy l → (e → String) → e → Errors errs
 error label msg = liftErrors <<< Batteries.error label msg
 
-liftErrors ∷ ∀ errs. Batteries.Errors errs → Errors errs
+liftErrors ∷ ∀ errs. Batteries.Errors' errs → Errors errs
 liftErrors = Array.singleton <<< { path: Nil, errors: _ }
 
 lmapValidatorVariant ∷ ∀ err err' i m o. Monad m ⇒ (Variant err → Variant err') → Base m err i o → Base m err' i o
@@ -175,18 +175,18 @@ consErrorsPath segment = map step
 _objectExpected = Proxy ∷ Proxy "objectExpected"
 
 type ObjectExpected e
-  = ( objectExpected ∷ Json | e )
+  = (objectExpected ∷ Json | e)
 
 object ∷ ∀ e m. Monad m ⇒ Validator m (ObjectExpected + e) (Object Json)
 object = Validator.liftFnMaybe (error _objectExpected msg) Argonaut.toObject
   where
   msg = append "Object expected but got: " <<< stringify
 
-objectOf ∷
-  ∀ m e a.
-  Monad m ⇒
-  Validator m (ObjectExpected + e) a →
-  Validator m (ObjectExpected + e) (Object a)
+objectOf
+  ∷ ∀ m e a
+  . Monad m
+  ⇒ Validator m (ObjectExpected + e) a
+  → Validator m (ObjectExpected + e) (Object a)
 objectOf v = liftFnMV ov <<< object
   where
   ep key = consErrorsPath (Key key)
@@ -199,25 +199,25 @@ objectOf v = liftFnMV ov <<< object
   ov ∷ Object Json → m (V (Errors (ObjectExpected + e)) (Object a))
   ov = f >>> map sequence
 
-mapOf ∷
-  ∀ m e a.
-  Monad m ⇒
-  Validator m (ObjectExpected + e) a →
-  Validator m (ObjectExpected + e) (Map String a)
+mapOf
+  ∷ ∀ m e a
+  . Monad m
+  ⇒ Validator m (ObjectExpected + e) a
+  → Validator m (ObjectExpected + e) (Map String a)
 mapOf v = liftFn Map.fromFoldableWithIndex <<< objectOf v
 
-field_ ∷
-  ∀ a errs m.
-  Monad m ⇒
-  String →
-  Base m errs (Maybe Json) a →
-  Field m errs a
+field_
+  ∷ ∀ a errs m
+  . Monad m
+  ⇒ String
+  → Base m errs (Maybe Json) a
+  → Field m errs a
 field_ name fv = Validator.liftFn (Object.lookup name) >>> Validator.lmapValidator (consErrorsPath (Key name)) fv
 
 _fieldMissing = Proxy ∷ Proxy "fieldMissing"
 
 type FieldMissing e
-  = ( fieldMissing ∷ String | e )
+  = (fieldMissing ∷ String | e)
 
 -- | These two validators starts from `Object Json` and not just `Json` so
 -- | you should compose them with `object` validator like:
@@ -231,49 +231,49 @@ type FieldMissing e
 -- | times like:
 -- |
 -- | { x: _, y: _ } <$> (object >>> field "x" int) <*> (object >>> field "y" int)
-field ∷
-  ∀ a errs m.
-  Monad m ⇒
-  String →
-  Validator m (FieldMissing + errs) a →
-  Field m (FieldMissing + errs) a
+field
+  ∷ ∀ a errs m
+  . Monad m
+  ⇒ String
+  → Validator m (FieldMissing + errs) a
+  → Field m (FieldMissing + errs) a
 field name fv = field_ name (liftFnMaybe (const $ error _fieldMissing (const $ msg) name) identity >>> fv)
   where
   msg = "Object is missing a required field: " <> name
 
-optionalField ∷
-  ∀ a errs m.
-  Monad m ⇒
-  String →
-  Validator m errs a →
-  Field m errs (Maybe a)
+optionalField
+  ∷ ∀ a errs m
+  . Monad m
+  ⇒ String
+  → Validator m errs a
+  → Field m errs (Maybe a)
 optionalField name fv = field_ name v
   where
   v = lcmap (note unit) (pure Nothing ||| Just <$> fv)
 
-nullableOptionalField ∷
-  ∀ a errs m.
-  Monad m ⇒
-  String →
-  Validator m (NullExpected + errs) a →
-  Field m (NullExpected + errs) (Maybe a)
+nullableOptionalField
+  ∷ ∀ a errs m
+  . Monad m
+  ⇒ String
+  → Validator m (NullExpected + errs) a
+  → Field m (NullExpected + errs) (Maybe a)
 nullableOptionalField name fv = join <$> optionalField name (nullable fv)
 
 _arrayExpected = Proxy ∷ Proxy "arrayExpected"
 
 type ArrayExpected e
-  = ( arrayExpected ∷ Json | e )
+  = (arrayExpected ∷ Json | e)
 
 array ∷ ∀ e m. Monad m ⇒ Validator m (ArrayExpected + e) (Array Json)
 array = Validator.liftFnMaybe (error _arrayExpected msg) Argonaut.toArray
   where
   msg = append "Array expected but got: " <<< stringify
 
-arrayOf ∷
-  ∀ m e a.
-  Monad m ⇒
-  Validator m (ArrayExpected + e) a →
-  Validator m (ArrayExpected + e) (Array a)
+arrayOf
+  ∷ ∀ m e a
+  . Monad m
+  ⇒ Validator m (ArrayExpected + e) a
+  → Validator m (ArrayExpected + e) (Array a)
 arrayOf v = array >>> liftFnMV av
   where
   ep idx = consErrorsPath (Index idx)
@@ -289,13 +289,13 @@ arrayOf v = array >>> liftFnMV av
 _indexMissing = Proxy ∷ Proxy "indexMissing"
 
 type IndexMissing e
-  = ( indexMissing ∷ { arr ∷ Array Json, idx ∷ Int } | e )
+  = (indexMissing ∷ { arr ∷ Array Json, idx ∷ Int } | e)
 
-index ∷
-  ∀ errs m.
-  Monad m ⇒
-  Int →
-  Validator.Validator m (Errors (IndexMissing + errs)) (Array Json) Json
+index
+  ∷ ∀ errs m
+  . Monad m
+  ⇒ Int
+  → Validator.Validator m (Errors (IndexMissing + errs)) (Array Json) Json
 index idx = liftFnMaybe err (flip Array.index idx)
   where
   err arr = consErrorsPath (Index idx) (error _indexMissing msg { arr, idx })
@@ -309,24 +309,24 @@ index idx = liftFnMaybe err (flip Array.index idx)
 _nullExpected = Proxy ∷ Proxy "nullExpected"
 
 type NullExpected e
-  = ( nullExpected ∷ Json | e )
+  = (nullExpected ∷ Json | e)
 
 null ∷ ∀ e m. Monad m ⇒ Validator m (NullExpected + e) JNull
 null = Validator.liftFnMaybe (error _nullExpected msg) toNull
   where
   msg = append "Null expected but got: " <<< stringify
 
-nullable ∷
-  ∀ a errs m.
-  Monad m ⇒
-  Validator m (NullExpected + errs) a →
-  Validator m (NullExpected + errs) (Maybe a)
+nullable
+  ∷ ∀ a errs m
+  . Monad m
+  ⇒ Validator m (NullExpected + errs) a
+  → Validator m (NullExpected + errs) (Maybe a)
 nullable fv = (null *> pure Nothing) <|> (Just <$> fv)
 
 _intExpected = Proxy ∷ Proxy "intExpected"
 
 type IntExpected e
-  = ( intExpected ∷ Json | e )
+  = (intExpected ∷ Json | e)
 
 int ∷ ∀ e m. Monad m ⇒ Validator m (IntExpected + e) Int
 int = Validator.liftFnMaybe (error _intExpected msg) (Argonaut.toNumber >=> Int.fromNumber)
@@ -336,7 +336,7 @@ int = Validator.liftFnMaybe (error _intExpected msg) (Argonaut.toNumber >=> Int.
 _booleanExpected = Proxy ∷ Proxy "booleanExpected"
 
 type BooleanExpected e
-  = ( booleanExpected ∷ Json | e )
+  = (booleanExpected ∷ Json | e)
 
 boolean ∷ ∀ e m. Monad m ⇒ Validator m (BooleanExpected + e) Boolean
 boolean = Validator.liftFnMaybe (error _booleanExpected msg) Argonaut.toBoolean
@@ -346,17 +346,19 @@ boolean = Validator.liftFnMaybe (error _booleanExpected msg) Argonaut.toBoolean
 _stringExpected = Proxy ∷ Proxy "stringExpected"
 
 type StringExpected e
-  = ( stringExpected ∷ Json | e )
+  = (stringExpected ∷ Json | e)
 
 string ∷ ∀ e m. Monad m ⇒ Validator m (StringExpected + e) String
 string = Validator.liftFnMaybe (error _stringExpected msg) Argonaut.toString
   where
+  msg :: Json -> String
   msg = append "String expected but got: " <<< stringify
+
 
 _numberExpected = Proxy ∷ Proxy "numberExpected"
 
 type NumberExpected e
-  = ( numberExpected ∷ Json | e )
+  = (numberExpected ∷ Json | e)
 
 number ∷ ∀ e m. Monad m ⇒ Validator m (NumberExpected + e) Number
 number = Validator.liftFnMaybe (error _numberExpected msg) Argonaut.toNumber
@@ -386,7 +388,7 @@ fromNull = unsafeCoerce
 _argonautError = Proxy ∷ Proxy "argonautError"
 
 type ArgonautError e
-  = ( argonautError ∷ Argonaut.JsonDecodeError | e )
+  = (argonautError ∷ Argonaut.JsonDecodeError | e)
 
 argonaut ∷ ∀ a e m. Monad m ⇒ DecodeJson a ⇒ Validator m (ArgonautError + e) a
 argonaut = Validator.liftFnEither (lmap (error _argonautError msg) <<< decodeJson)

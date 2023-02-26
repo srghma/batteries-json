@@ -8,7 +8,6 @@ import Data.Lazy (defer)
 import Data.List (fromFoldable) as List
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Data.Validation.Semigroup (unV)
 import Data.Variant (inj)
 import Effect.Aff (Aff)
 import Foreign.Object (fromFoldable) as Object
@@ -19,15 +18,12 @@ import Polyform.Tokenized.Validator (liftUntokenized) as Tokenized.Validator
 import Polyform.Validator (liftFn) as Validator
 import Polyform.Validator (runValidator)
 import Record.Extra (sequenceRecord)
+import Test.Json.Messages (mkFieldMissingMsg, mkIntExpectedMsg)
+import Test.Polyform.Batteries.Json.Duals (unV)
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
 import Test.Unit.Assert (equal)
 import Test.Utils (unsafeStringify)
-
-arrayToList = Validator.liftFn List.fromFoldable
-
-msg ∷ ∀ a. a → String
-msg _ = ""
 
 suite ∷ TestSuite
 suite =
@@ -36,9 +32,10 @@ suite =
         test "Tokenized"
           $ do
               let
+                arrayToList = Validator.liftFn List.fromFoldable
                 obj = array >>> arrayToList >>> d
                   where
-                  fm = error _fieldMissing msg
+                  fm = error _fieldMissing mkFieldMissingMsg
 
                   d =
                     Tokenized.unliftUntokenized
@@ -122,11 +119,12 @@ suite =
                         , "bar" /\ fromString "test"
                         , "baz" /\ fromNumber 8.0
                         ]
-
                 expectedError =
                   consErrorsPath (Key "foo")
-                    $ consErrorsPath (Key "x") (liftErrors [ { msg: defer \_ → "WRONG", info: inj _intExpected (fromString "incorrect int") } ])
-                    <> consErrorsPath (Key "y") (liftErrors [ { msg: defer \_ → "WRONG", info: inj _fieldMissing "y" } ])
+                    $ do
+                        let v = fromString "incorrect int"
+                        consErrorsPath (Key "x") (liftErrors [ { msg: defer \_ → mkIntExpectedMsg v, info: inj _intExpected v } ])
+                    <> consErrorsPath (Key "y") (liftErrors [ { msg: defer \_ → mkFieldMissingMsg "y", info: inj _fieldMissing "y" } ])
               parsed ← runValidator obj input
               unV
                 ( \err →

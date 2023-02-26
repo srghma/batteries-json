@@ -7,42 +7,44 @@ import Prelude
 
 import Data.Argonaut (Json, fromObject, fromString)
 import Foreign.Object (fromHomogeneous)
+import JS.Unsafe.Stringify (unsafeStringify)
 import Polyform.Batteries.Json.Validators (ArrayExpected, BooleanExpected, FieldMissing, IntExpected, NullExpected, NumberExpected, ObjectExpected, StringExpected) as Json
 import Prim.Row (class Nub, class Union) as Row
 import Prim.RowList (class RowToList)
 import Record.Builder (Builder, merge) as Record.Builder
-import Test.Utils (unsafeStringify)
 import Type.Row (type (+))
 import Type.Row.Homogeneous (class HomogeneousRowList)
 
 type FieldMessages msgs
-  = ( Json.ArrayExpected
-        + Json.BooleanExpected
-        + Json.FieldMissing
-        + Json.IntExpected
-        + Json.NullExpected
-        + Json.NumberExpected
-        + Json.ObjectExpected
-        + Json.StringExpected
-        + msgs
-    )
+  =
+  ( Json.ArrayExpected
+      + Json.BooleanExpected
+      + Json.FieldMissing
+      + Json.IntExpected
+      + Json.NullExpected
+      + Json.NumberExpected
+      + Json.ObjectExpected
+      + Json.StringExpected
+      + msgs
+  )
 
 type FieldPrinters r
-  = ( "arrayExpected" ∷ Json → Json
-    , "booleanExpected" ∷ Json → Json
-    , "fieldMissing" ∷ Json → Json
-    , "intExpected" ∷ Json → Json
-    , "nullExpected" ∷ Json → Json
-    , "numberExpected" ∷ Json → Json
-    , "objectExpected" ∷ Json → Json
-    , "stringExpected" ∷ Json → Json
-    | r
-    )
+  =
+  ( "arrayExpected" ∷ Json → Json
+  , "booleanExpected" ∷ Json → Json
+  , "fieldMissing" ∷ Json → Json
+  , "intExpected" ∷ Json → Json
+  , "nullExpected" ∷ Json → Json
+  , "numberExpected" ∷ Json → Json
+  , "objectExpected" ∷ Json → Json
+  , "stringExpected" ∷ Json → Json
+  | r
+  )
 
-field ∷
-  ∀ r r''.
-  Row.Nub (FieldPrinters r) r'' ⇒
-  Record.Builder.Builder { | r } { | r'' }
+field
+  ∷ ∀ r r''
+  . Row.Nub (FieldPrinters r) r''
+  ⇒ Record.Builder.Builder { | r } { | r'' }
 field =
   let
     flatten ∷ ∀ s sl. RowToList s sl ⇒ HomogeneousRowList sl Json ⇒ Record s → Json
