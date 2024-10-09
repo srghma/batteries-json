@@ -2,23 +2,17 @@ module Test.Polyform.Batteries.Json.Duals where
 
 import Prelude
 
-import Data.Argonaut (Json, fromBoolean, fromNumber, stringify) as Argonaut
-import Data.Argonaut (fromArray, fromNumber, fromObject, fromString, jsonNull)
+import Data.Argonaut (fromBoolean, fromNumber) as Argonaut
+import Data.Argonaut (fromNumber, fromObject, fromString, jsonNull)
 import Data.Argonaut (fromString) as Argounaut
-import Data.Array (zip)
-import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Foldable (for_)
 import Data.Functor.Invariant (imap)
 import Data.Generic.Rep (class Generic)
 import Data.Int (toNumber)
-import Data.Lazy (force)
-import Data.Newtype (un)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested ((/\))
 import Data.Validation.Semigroup (V(..), invalid)
 import Data.Variant (Variant, inj, match)
-import Debug (traceM)
 import Effect.Aff (Aff)
 import Foreign.Object (fromFoldable) as Object
 import Polyform.Batteries.Json (NullExpected, jnull)
@@ -34,7 +28,7 @@ import Polyform.Validator (liftFn) as Validator
 import Polyform.Validator (liftFnMV) as Validtor
 import Polyform.Validator (runValidator)
 import Prelude (unit) as Prelude
-import Test.Json.Messages (mkIncorrectTagMsg, mkStringMsg)
+import Test.Polyform.Batteries.Json.Messages (mkIncorrectTagMsg, mkStringMsg)
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
 import Test.Unit.Assert (equal)
@@ -142,7 +136,7 @@ sumVariantDual = Json.Duals.object >>> tagWithValue >>> valueDual
           { t: "s", v } → runValidator (Json.Validators.string >>> Validator.liftFn (inj _s)) v
           { t: "i", v } → runValidator (Json.Validators.int >>> Validator.liftFn (inj _i)) v
           { t: "b", v } → runValidator (Json.Validators.boolean >>> Validator.liftFn (inj _b)) v
-          { t, v } → pure $ invalid $ Json.Validators.error _incorrectTag msg t
+          { t, v: _v } → pure $ invalid $ Json.Validators.error _incorrectTag msg t
 
   serializer =
     match
@@ -182,7 +176,7 @@ suite =
                       <<< (Proxy ∷ Proxy "baz")
                       := number
 
-                objs = arrayOf obj
+                _objs = arrayOf obj
               test "Parse object"
                 $ do
                     let

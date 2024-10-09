@@ -1,4 +1,4 @@
-module Test.Json.Messages where
+module Test.Polyform.Batteries.Json.Messages where
 
 import Prelude
 
@@ -17,4 +17,3 @@ mkFieldMissingMsg name = "Object is missing a required field: " <> name
 
 mkIntExpectedMsg :: Argonaut.Json -> String
 mkIntExpectedMsg = append "Int expected but got: " <<< Argonaut.stringify
-

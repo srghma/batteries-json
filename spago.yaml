@@ -1,0 +1,52 @@
+package:
+  dependencies:
+    - argonaut
+    - argonaut-codecs
+    - arrays
+    - bifunctors
+    - control
+    - either
+    - enums
+    - foldable-traversable
+    - foreign-object
+    - identity
+    - integers
+    - lists
+    - maybe
+    - newtype
+    - ordered-collections
+    - polyform
+    - polyform-batteries-core
+    - prelude
+    - profunctor
+    - record
+    - strings
+    - typelevel-prelude
+    - unsafe-coerce
+    - validation
+    - variant
+  name: batteries-json
+  test:
+    main: Test.Main
+    dependencies:
+      - aff
+      - effect
+      - invariant
+      - lazy
+      - record-extra
+      - test-unit
+      - tuples
+workspace:
+  extraPackages:
+    js-unsafe-stringify:
+      # git: https://github.com/paluh/purescript-js-unsafe-stringify.git
+      git: https://github.com/srghma/purescript-js-unsafe-stringify.git
+      ref: master
+    polyform:
+      git: https://github.com/srghma/polyform.git
+      ref: master
+    polyform-batteries-core:
+      git: https://github.com/srghma/batteries-core.git
+      ref: master
+  packageSet:
+    registry: 60.4.0

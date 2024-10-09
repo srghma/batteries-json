@@ -7,9 +7,8 @@ import Prelude
 
 import Data.Argonaut (Json, fromObject, fromString)
 import Foreign.Object (fromHomogeneous)
-import JS.Unsafe.Stringify (unsafeStringify)
 import Polyform.Batteries.Json.Validators (ArrayExpected, BooleanExpected, FieldMissing, IntExpected, NullExpected, NumberExpected, ObjectExpected, StringExpected) as Json
-import Prim.Row (class Nub, class Union) as Row
+import Prim.Row (class Nub) as Row
 import Prim.RowList (class RowToList)
 import Record.Builder (Builder, merge) as Record.Builder
 import Type.Row (type (+))

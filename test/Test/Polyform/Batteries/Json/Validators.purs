@@ -18,7 +18,7 @@ import Polyform.Tokenized.Validator (liftUntokenized) as Tokenized.Validator
 import Polyform.Validator (liftFn) as Validator
 import Polyform.Validator (runValidator)
 import Record.Extra (sequenceRecord)
-import Test.Json.Messages (mkFieldMissingMsg, mkIntExpectedMsg)
+import Test.Polyform.Batteries.Json.Messages (mkFieldMissingMsg, mkIntExpectedMsg)
 import Test.Polyform.Batteries.Json.Duals (unV)
 import Test.Unit (TestSuite, failure, test)
 import Test.Unit (suite) as Test.Unit
