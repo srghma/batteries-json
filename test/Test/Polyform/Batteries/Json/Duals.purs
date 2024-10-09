@@ -56,23 +56,22 @@ unV onFailure onSuccess = case _ of
   V (Left e) → onFailure e
   V (Right a) → onSuccess a
 
-data Single
-  = Single String
+data Single = Single String
 
-sumD' ∷
-  Json.Duals.Dual
-    Aff
-    ( BooleanExpected
-        + FieldMissing
-        + IntExpected
-        + IncorrectTag
-        + NullExpected
-        + NumberExpected
-        + ObjectExpected
-        + StringExpected
-        + ()
-    )
-    Sum
+sumD'
+  ∷ Json.Duals.Dual
+      Aff
+      ( BooleanExpected
+          + FieldMissing
+          + IntExpected
+          + IncorrectTag
+          + NullExpected
+          + NumberExpected
+          + ObjectExpected
+          + StringExpected
+          + ()
+      )
+      Sum
 sumD' =
   sum
     { "S": identity string
@@ -99,36 +98,36 @@ unitDual = imap (const unit) (const jnull) null
 msg ∷ ∀ a. a → String
 msg _ = ""
 
-variant ∷
-  forall e m.
-  Monad m ⇒
-  Json.Duals.Dual m (CoproductErrors + IntExpected + NullExpected + e) (Variant ( i ∷ Int, s ∷ String, u ∷ Unit ))
+variant
+  ∷ forall e m
+   . Monad m
+  ⇒ Json.Duals.Dual m (CoproductErrors + IntExpected + NullExpected + e) (Variant (i ∷ Int, s ∷ String, u ∷ Unit))
 variant =
   case_
     # on (Proxy ∷ Proxy "s") string
     # on (Proxy ∷ Proxy "u") unitDual
     # on (Proxy ∷ Proxy "i") int
 
-sumVariantDual ∷
-  ∀ e.
-  Json.Duals.Dual Aff
-    ( BooleanExpected
-        + FieldMissing
-        + IncorrectTag
-        + IntExpected
-        + ObjectExpected
-        + StringExpected
-        + e
-    )
-    (Variant ( s ∷ String, b ∷ Boolean, i ∷ Int ))
+sumVariantDual
+  ∷ ∀ e
+  . Json.Duals.Dual Aff
+      ( BooleanExpected
+          + FieldMissing
+          + IncorrectTag
+          + IntExpected
+          + ObjectExpected
+          + StringExpected
+          + e
+      )
+      (Variant (s ∷ String, b ∷ Boolean, i ∷ Int))
 sumVariantDual = Json.Duals.object >>> tagWithValue >>> valueDual
   where
   tagWithValue =
     Dual.Dual $ { t: _, v: _ }
       <$> _.t
-      ~ Json.Duals.field "tag" Json.Duals.string
+        ~ Json.Duals.field "tag" Json.Duals.string
       <*> _.v
-      ~ Json.Duals.field "value" identity
+        ~ Json.Duals.field "value" identity
 
   parser =
     Validtor.liftFnMV
@@ -154,27 +153,28 @@ suite =
         Test.Unit.suite "record handling"
           $ do
               let
-                obj ∷
-                  ∀ e.
-                  Json.Duals.Dual Aff
-                    ( FieldMissing
-                        + IntExpected
-                        + NumberExpected
-                        + ObjectExpected
-                        + StringExpected
-                        + e
-                    )
-                    { foo ∷ Int, bar ∷ String, baz ∷ Number }
+                obj
+                  ∷ ∀ e
+                  . Json.Duals.Dual Aff
+                      ( FieldMissing
+                          + IntExpected
+                          + NumberExpected
+                          + ObjectExpected
+                          + StringExpected
+                          + e
+                      )
+                      { foo ∷ Int, bar ∷ String, baz ∷ Number }
                 obj = object >>> d
                   where
                   d =
                     Dual.Record.build
-                      $ (Proxy ∷ Proxy "foo")
-                      := int
-                      <<< (Proxy ∷ Proxy "bar")
-                      := string
-                      <<< (Proxy ∷ Proxy "baz")
-                      := number
+                      $
+                        (Proxy ∷ Proxy "foo")
+                          := int
+                          <<< (Proxy ∷ Proxy "bar")
+                            := string
+                          <<< (Proxy ∷ Proxy "baz")
+                            := number
 
                 _objs = arrayOf obj
               test "Parse object"
@@ -216,20 +216,20 @@ suite =
               test "through generic helper"
                 $ do
                     let
-                      sumD ∷
-                        Json.Duals.Dual
-                          Aff
-                          ( BooleanExpected
-                              + FieldMissing
-                              + IntExpected
-                              + IncorrectTag
-                              + NullExpected
-                              + NumberExpected
-                              + ObjectExpected
-                              + StringExpected
-                              + ()
-                          )
-                          Sum
+                      sumD
+                        ∷ Json.Duals.Dual
+                            Aff
+                            ( BooleanExpected
+                                + FieldMissing
+                                + IntExpected
+                                + IncorrectTag
+                                + NullExpected
+                                + NumberExpected
+                                + ObjectExpected
+                                + StringExpected
+                                + ()
+                            )
+                            Sum
                       sumD =
                         sum
                           { "S": (\a → a) string

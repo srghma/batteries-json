@@ -15,8 +15,7 @@ import Type.Row (type (+))
 
 _decodingError = Proxy ∷ Proxy "jsonDecodingError"
 
-type JsonDecodingError e
-  = (jsonDecodingError ∷ String | e)
+type JsonDecodingError e = (jsonDecodingError ∷ String | e)
 
 validator
   ∷ ∀ errs m

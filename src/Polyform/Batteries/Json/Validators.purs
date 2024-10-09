@@ -109,8 +109,7 @@ derive instance genericSegment ∷ Generic Segment _
 instance showSegment ∷ Show Segment where
   show s = genericShow s
 
-type Path
-  = List Segment
+type Path = List Segment
 
 printPath ∷ Path → String
 printPath = String.joinWith "." <<< map printSegment <<< Array.fromFoldable
@@ -120,23 +119,17 @@ printPath = String.joinWith "." <<< map printSegment <<< Array.fromFoldable
   printSegment (Index i) = show i
 
 -- | TODO: turn errors into `NonEmptyArray`
-type ErrorsBase errs
-  = Array { path ∷ Path, errors ∷ Array errs }
+type ErrorsBase errs = Array { path ∷ Path, errors ∷ Array errs }
 
-type Errors errs
-  = ErrorsBase (Batteries.Msg errs)
+type Errors errs = ErrorsBase (Batteries.Msg errs)
 
-type Base m errs
-  = Validator.Validator m (Errors errs)
+type Base m errs = Validator.Validator m (Errors errs)
 
-type Field m errs
-  = Base m errs (Object Json)
+type Field m errs = Base m errs (Object Json)
 
-type Validator m errs
-  = Base m errs Json
+type Validator m errs = Base m errs Json
 
-type Pure errs
-  = Validator Identity errs
+type Pure errs = Validator Identity errs
 
 -- | TODO: Renamo to `liftValidator`
 -- | Lifts validators which represents error as `Array (Variant errs)`
@@ -174,8 +167,7 @@ consErrorsPath segment = map step
 
 _objectExpected = Proxy ∷ Proxy "objectExpected"
 
-type ObjectExpected e
-  = (objectExpected ∷ Json | e)
+type ObjectExpected e = (objectExpected ∷ Json | e)
 
 object ∷ ∀ e m. Monad m ⇒ Validator m (ObjectExpected + e) (Object Json)
 object = Validator.liftFnMaybe (error _objectExpected msg) Argonaut.toObject
@@ -216,8 +208,7 @@ field_ name fv = Validator.liftFn (Object.lookup name) >>> Validator.lmapValidat
 
 _fieldMissing = Proxy ∷ Proxy "fieldMissing"
 
-type FieldMissing e
-  = (fieldMissing ∷ String | e)
+type FieldMissing e = (fieldMissing ∷ String | e)
 
 -- | These two validators starts from `Object Json` and not just `Json` so
 -- | you should compose them with `object` validator like:
@@ -261,8 +252,7 @@ nullableOptionalField name fv = join <$> optionalField name (nullable fv)
 
 _arrayExpected = Proxy ∷ Proxy "arrayExpected"
 
-type ArrayExpected e
-  = (arrayExpected ∷ Json | e)
+type ArrayExpected e = (arrayExpected ∷ Json | e)
 
 array ∷ ∀ e m. Monad m ⇒ Validator m (ArrayExpected + e) (Array Json)
 array = Validator.liftFnMaybe (error _arrayExpected msg) Argonaut.toArray
@@ -288,8 +278,7 @@ arrayOf v = array >>> liftFnMV av
 
 _indexMissing = Proxy ∷ Proxy "indexMissing"
 
-type IndexMissing e
-  = (indexMissing ∷ { arr ∷ Array Json, idx ∷ Int } | e)
+type IndexMissing e = (indexMissing ∷ { arr ∷ Array Json, idx ∷ Int } | e)
 
 index
   ∷ ∀ errs m
@@ -308,8 +297,7 @@ index idx = liftFnMaybe err (flip Array.index idx)
 
 _nullExpected = Proxy ∷ Proxy "nullExpected"
 
-type NullExpected e
-  = (nullExpected ∷ Json | e)
+type NullExpected e = (nullExpected ∷ Json | e)
 
 null ∷ ∀ e m. Monad m ⇒ Validator m (NullExpected + e) JNull
 null = Validator.liftFnMaybe (error _nullExpected msg) toNull
@@ -325,8 +313,7 @@ nullable fv = (null *> pure Nothing) <|> (Just <$> fv)
 
 _intExpected = Proxy ∷ Proxy "intExpected"
 
-type IntExpected e
-  = (intExpected ∷ Json | e)
+type IntExpected e = (intExpected ∷ Json | e)
 
 int ∷ ∀ e m. Monad m ⇒ Validator m (IntExpected + e) Int
 int = Validator.liftFnMaybe (error _intExpected msg) (Argonaut.toNumber >=> Int.fromNumber)
@@ -335,8 +322,7 @@ int = Validator.liftFnMaybe (error _intExpected msg) (Argonaut.toNumber >=> Int.
 
 _booleanExpected = Proxy ∷ Proxy "booleanExpected"
 
-type BooleanExpected e
-  = (booleanExpected ∷ Json | e)
+type BooleanExpected e = (booleanExpected ∷ Json | e)
 
 boolean ∷ ∀ e m. Monad m ⇒ Validator m (BooleanExpected + e) Boolean
 boolean = Validator.liftFnMaybe (error _booleanExpected msg) Argonaut.toBoolean
@@ -345,8 +331,7 @@ boolean = Validator.liftFnMaybe (error _booleanExpected msg) Argonaut.toBoolean
 
 _stringExpected = Proxy ∷ Proxy "stringExpected"
 
-type StringExpected e
-  = (stringExpected ∷ Json | e)
+type StringExpected e = (stringExpected ∷ Json | e)
 
 string ∷ ∀ e m. Monad m ⇒ Validator m (StringExpected + e) String
 string = Validator.liftFnMaybe (error _stringExpected msg) Argonaut.toString
@@ -354,11 +339,9 @@ string = Validator.liftFnMaybe (error _stringExpected msg) Argonaut.toString
   msg :: Json -> String
   msg = append "String expected but got: " <<< stringify
 
-
 _numberExpected = Proxy ∷ Proxy "numberExpected"
 
-type NumberExpected e
-  = (numberExpected ∷ Json | e)
+type NumberExpected e = (numberExpected ∷ Json | e)
 
 number ∷ ∀ e m. Monad m ⇒ Validator m (NumberExpected + e) Number
 number = Validator.liftFnMaybe (error _numberExpected msg) Argonaut.toNumber
@@ -387,8 +370,7 @@ fromNull = unsafeCoerce
 
 _argonautError = Proxy ∷ Proxy "argonautError"
 
-type ArgonautError e
-  = (argonautError ∷ Argonaut.JsonDecodeError | e)
+type ArgonautError e = (argonautError ∷ Argonaut.JsonDecodeError | e)
 
 argonaut ∷ ∀ a e m. Monad m ⇒ DecodeJson a ⇒ Validator m (ArgonautError + e) a
 argonaut = Validator.liftFnEither (lmap (error _argonautError msg) <<< decodeJson)

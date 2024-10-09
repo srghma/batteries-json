@@ -46,17 +46,13 @@ import Prim.RowList (class RowToList)
 import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
 import Type.Row (type (+))
 
-type Base m errs
-  = Validator.Dual.Dual m (Errors errs)
+type Base m errs = Validator.Dual.Dual m (Errors errs)
 
-type Dual m errs
-  = Base m errs Json
+type Dual m errs = Base m errs Json
 
-type Pure errs
-  = Base Identity errs Json
+type Pure errs = Base Identity errs Json
 
-type Field m errs
-  = Base m errs (Object Json)
+type Field m errs = Base m errs (Object Json)
 
 -- | Lift any Dual by enhancing error structure by adding an extra empty path.
 -- | Please check `Duals.Validators.fromValidator` for the details.
@@ -82,8 +78,7 @@ lmapDualVariant f = Dual.hoistParser (Json.Validators.lmapValidatorVariant f)
 -- | which performs underlining `append` on values
 -- | we have to wrap it up and provide appropriate
 -- | wrapping with `First`.
-type Object a
-  = Foreign.Object (First a)
+type Object a = Foreign.Object (First a)
 
 -- | Raw object
 objectOf
@@ -325,8 +320,7 @@ insertConst label a = label := (dual prs ser)
 
   prs = Validator.liftFn (const a)
 
-type CoproductErrors e
-  = (IncorrectTag + StringExpected + FieldMissing + ObjectExpected + e)
+type CoproductErrors e = (IncorrectTag + StringExpected + FieldMissing + ObjectExpected + e)
 
 variant
   ∷ ∀ e d dl m v
@@ -348,8 +342,7 @@ sum r = Validator.Dual.Generic.sum tagged r
 
 _incorrectTag = Proxy ∷ Proxy "incorrectTag"
 
-type IncorrectTag e
-  = (incorrectTag ∷ String | e)
+type IncorrectTag e = (incorrectTag ∷ String | e)
 
 taggedWith
   ∷ ∀ a e l m

@@ -40,9 +40,9 @@ suite =
                   d =
                     Tokenized.unliftUntokenized
                       $ { foo: _, bar: _, baz: _ }
-                      <$> Tokenized.Validator.liftUntokenized (fm "X") int
-                      <*> Tokenized.Validator.liftUntokenized (fm "X") string
-                      <*> Tokenized.Validator.liftUntokenized (fm "X") number
+                          <$> Tokenized.Validator.liftUntokenized (fm "X") int
+                          <*> Tokenized.Validator.liftUntokenized (fm "X") string
+                          <*> Tokenized.Validator.liftUntokenized (fm "X") number
 
                 input =
                   fromArray
@@ -86,16 +86,16 @@ suite =
         test "Errors paths"
           $ do
               let
-                obj ∷
-                  Json.Validator
-                    Aff
-                    ( fieldMissing :: String
-                    , intExpected :: Json
-                    , numberExpected :: Json
-                    , objectExpected :: Json
-                    , stringExpected :: Json
-                    )
-                    _
+                obj
+                  ∷ Json.Validator
+                      Aff
+                      ( fieldMissing :: String
+                      , intExpected :: Json
+                      , numberExpected :: Json
+                      , objectExpected :: Json
+                      , stringExpected :: Json
+                      )
+                      _
                 obj = object >>> r
                   where
                   r =
@@ -108,9 +108,9 @@ suite =
                   sub =
                     object
                       >>> sequenceRecord
-                          { x: field "x" int
-                          , y: field "y" int
-                          }
+                        { x: field "x" int
+                        , y: field "y" int
+                        }
 
                 input =
                   fromObject
@@ -121,10 +121,11 @@ suite =
                         ]
                 expectedError =
                   consErrorsPath (Key "foo")
-                    $ do
+                    $
+                      do
                         let v = fromString "incorrect int"
                         consErrorsPath (Key "x") (liftErrors [ { msg: defer \_ → mkIntExpectedMsg v, info: inj _intExpected v } ])
-                    <> consErrorsPath (Key "y") (liftErrors [ { msg: defer \_ → mkFieldMissingMsg "y", info: inj _fieldMissing "y" } ])
+                        <> consErrorsPath (Key "y") (liftErrors [ { msg: defer \_ → mkFieldMissingMsg "y", info: inj _fieldMissing "y" } ])
               parsed ← runValidator obj input
               unV
                 ( \err →

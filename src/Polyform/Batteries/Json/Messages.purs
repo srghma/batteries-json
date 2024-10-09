@@ -14,8 +14,7 @@ import Record.Builder (Builder, merge) as Record.Builder
 import Type.Row (type (+))
 import Type.Row.Homogeneous (class HomogeneousRowList)
 
-type FieldMessages msgs
-  =
+type FieldMessages msgs =
   ( Json.ArrayExpected
       + Json.BooleanExpected
       + Json.FieldMissing
@@ -27,8 +26,7 @@ type FieldMessages msgs
       + msgs
   )
 
-type FieldPrinters r
-  =
+type FieldPrinters r =
   ( "arrayExpected" ∷ Json → Json
   , "booleanExpected" ∷ Json → Json
   , "fieldMissing" ∷ Json → Json
